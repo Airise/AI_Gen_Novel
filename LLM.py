@@ -1,5 +1,7 @@
 from uniai import aliChatLLM, deepseekChatLLM, zhipuChatLLM
 
+# Using default timeout of 300 seconds (5 minutes)
+# You can increase this if needed: aliChatLLM("qwen-long", timeout=600) for 10 minutes
 chatLLM = aliChatLLM("qwen-long")
 
 if __name__ == "__main__":
