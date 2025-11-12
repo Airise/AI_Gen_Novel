@@ -5,7 +5,7 @@ from LLM import chatLLM
 aign = AIGN(chatLLM)
 
 user_idea = idea_list[1]
-user_requriments = "主角独自一人行动。非常重要！主角不要有朋友！！！"
+user_requirements = "主角独自一人行动。非常重要！主角不要有朋友！！！"
 # embellishment_idea="""
 # 请使用文言文创作
 # """
@@ -14,8 +14,8 @@ user_requriments = "主角独自一人行动。非常重要！主角不要有朋
 # - 在正文中添加表情包：😂😅😘💕😍👍
 # """
 
-aign.genNovelOutline(user_idea)
-aign.genBeginning(user_requriments)
+aign.generate_outline(user_idea)
+aign.generate_beginning(user_requirements)
 
 while 1:
-    aign.genNextParagraph()
+    aign.generate_next_paragraph()
