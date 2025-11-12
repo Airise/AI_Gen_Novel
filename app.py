@@ -64,26 +64,35 @@ def make_middle_chat():
     carrier = threading.Event()
     carrier.history = []
 
+    # 在 make_middle_chat 函数中
     def middle_chat(messages, temperature=None, top_p=None):
         nonlocal carrier
         carrier.history.append([None, ""])
         if len(carrier.history) > 20:
             carrier.history = carrier.history[-16:]
         try:
+            total_tokens = None
             for resp in chatLLM(
                 messages, temperature=temperature, top_p=top_p, stream=True
             ):
                 output_text = resp["content"]
-                total_tokens = resp["total_tokens"]
-
-                carrier.history[-1][1] = f"total_tokens: {total_tokens}\n{output_text}"
+                # 流式生成时只显示内容
+                carrier.history[-1][1] = output_text
+                # 更新token值（如果有的话）
+                if resp["total_tokens"] is not None:
+                    total_tokens = resp["total_tokens"]
+            
+            # 生成完成后，如果有token信息，再添加到内容后面
+            if total_tokens is not None:
+                carrier.history[-1][1] = f"{output_text}\n\n---\n*total_tokens: {total_tokens}*"
+            
             return {
                 "content": output_text,
                 "total_tokens": total_tokens,
             }
         except Exception as e:
             carrier.history[-1][1] = f"Error: {e}"
-            raise e
+        raise e
 
     return carrier, middle_chat
 

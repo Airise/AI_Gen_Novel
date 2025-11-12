@@ -42,14 +42,14 @@ def deepseekChatLLM(model_name="deepseek-chat", api_key=None):
 
             def respGenerator():
                 content = ""
+                total_tokens = None
                 for response in responses:
-                    delta = response.choices[0].delta.content
+                    delta = response.choices[0].delta.content or ""
                     content += delta
 
-                    # if response.usage:
-                    #     total_tokens = response.usage.total_tokens
-                    # else:
-                    total_tokens = None
+                    usage = getattr(response, "usage", None)
+                    if usage and getattr(usage, "total_tokens", None) is not None:
+                        total_tokens = usage.total_tokens
 
                     yield {
                         "content": content,

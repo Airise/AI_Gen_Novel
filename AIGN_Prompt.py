@@ -10,6 +10,8 @@ PROMPTS = {
 ## Outputs:
 以固定格式输出：
 ```
+# 标题
+为这部小说构思一个吸引人的标题，标题应该能够概括故事的核心主题或特色，简洁有力，引人入胜。
 # 大纲
 包括且不限于设定、主要人物、开端发展高潮结局等
 # END
@@ -21,7 +23,8 @@ PROMPTS = {
 4. **反转与惊奇的艺术**：设计既出乎意料又情理之中的剧情反转，给读者带来刷新感和惊喜。合理的反转不仅能改变对之前情节的理解，还能展现角色深藏的一面或揭露背后的秘密。
 5. **富有深意的结局**：以一个既巧妙又令人满意的结局收尾，同时揭露故事所蕴含的深层次意义。好的结局不仅为读者提供闭环的满足感，还应激发他们对人性、社会或生活本质的深入思考。
 6. 非常重要！！！**保持创意的新鲜感**：在审视和规划故事大纲的过程中，确保每个故事元素和情节发展都具有原创性和新鲜感，避免陷入陈词滥调或高度可预测的叙事模式。
-7. **输出精细化的小说大纲**：综合用户的想法和自身的创新思维，构建一份详细的小说大纲。这份大纲不仅要概述故事的主线、关键事件和角色发展轨迹，还应明确故事想要传达的核心主题和深层寓意。
+7. **构思吸引人的标题**：基于故事的核心主题、主要冲突或独特设定，创作一个简洁有力、引人入胜的标题。标题应该能够激发读者的好奇心，同时准确反映故事的本质。
+8. **输出精细化的小说大纲**：综合用户的想法和自身的创新思维，构建一份详细的小说大纲。这份大纲不仅要概述故事的主线、关键事件和角色发展轨迹，还应明确故事想要传达的核心主题和深层寓意。
 ## init:
 接下来，我会提供给你小说的要求，我希望你能够深入理解和消化这些信息，确保我们对小说的构思和预期是一致的。当你完全吸收并理解了所有的要求之后，请回复我“明白了”，这样我们就可以确信基于共同的理解前进，继续进行小说大纲的编写工作。
 """,
@@ -153,6 +156,7 @@ PROMPTS = {
 """,
         "initial_reply": "明白了。",
         "keys": {
+            "title": "标题",
             "outline": "大纲",
             "opening": "开头",
             "plan": "计划",
@@ -162,6 +166,7 @@ PROMPTS = {
             "memory": "新的记忆",
         },
         "record_headers": {
+            "title": "# 标题",
             "outline": "# 大纲",
             "content": "# 正文",
             "memory": "# 记忆",
@@ -193,6 +198,8 @@ Idea and writing requests. Use them to shape the outline.
 ## Outputs:
 Return exactly in this format:
 ```
+# Title
+Craft an engaging title that captures the story's core theme or unique appeal. Keep it concise, powerful, and intriguing.
 # Outline
 Describe the premise, major characters, key arcs (setup, rising action, climax, finale), and standout hooks.
 # END
@@ -204,7 +211,8 @@ Describe the premise, major characters, key arcs (setup, rising action, climax, 
 4. Introduce smart reversals or reveals that feel surprising yet inevitable.
 5. Close with a satisfying resolution that also leaves readers thinking about deeper themes.
 6. Keep everything fresh—avoid clichés and predictable beats.
-7. Deliver a polished outline that readers could use as a compass for drafting the full story.
+7. Devise a compelling title that reflects the story's essence and sparks curiosity.
+8. Deliver a polished outline that readers could use as a compass for drafting the full story.
 ## init:
 I will share the requirements with you next. Only reply “Understood.” once you have fully absorbed them so we can move forward together.
 """,
@@ -321,6 +329,7 @@ Once you understand the materials I provide, respond with “Understood.” and 
 """,
         "initial_reply": "Understood.",
         "keys": {
+            "title": "Title",
             "outline": "Outline",
             "opening": "Opening",
             "plan": "Plan",
@@ -330,6 +339,7 @@ Once you understand the materials I provide, respond with “Understood.” and 
             "memory": "Updated Memory",
         },
         "record_headers": {
+            "title": "# Title",
             "outline": "# Outline",
             "content": "# Manuscript",
             "memory": "# Memory",

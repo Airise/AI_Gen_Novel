@@ -139,6 +139,13 @@ class AIGN:
 
     def _reset_story_state(self):
         self._abort_flag = False
+        self.novel_title = ""
+        self.core_setting = ""
+        self.main_characters = ""
+        self.story_beginning = ""
+        self.development = ""
+        self.climax = ""
+        self.ending = ""
         self.novel_outline = ""
         self.paragraphs = []
         self.novel_content = ""
@@ -211,9 +218,25 @@ class AIGN:
             self.user_idea = user_idea
         resp = self.novel_outline_writer.invoke_with_parsed_output(
             inputs={self.inputs["idea"]: self.user_idea},
-            output_keys=[self.keys["outline"]],
+            output_keys=[
+                self.keys["title"],
+                self.keys["core_setting"],
+                self.keys["main_characters"],
+                self.keys["story_beginning"],
+                self.keys["development"],
+                self.keys["climax"],
+                self.keys["ending"],
+            ],
         )
-        self.novel_outline = resp[self.keys["outline"]]
+        self.novel_title = resp[self.keys["title"]]
+        self.core_setting = resp[self.keys["core_setting"]]
+        self.main_characters = resp[self.keys["main_characters"]]
+        self.story_beginning = resp[self.keys["story_beginning"]]
+        self.development = resp[self.keys["development"]]
+        self.climax = resp[self.keys["climax"]]
+        self.ending = resp[self.keys["ending"]]
+        # 为了兼容性，将各部分组合成完整大纲
+        self.novel_outline = f"{self.core_setting}\n\n{self.main_characters}\n\n{self.story_beginning}\n\n{self.development}\n\n{self.climax}\n\n{self.ending}"
         return self.novel_outline
 
     def generate_beginning(self, user_requirements=None, embellishment_idea=None):
