@@ -112,10 +112,10 @@ def on_generate_outline_clicked(aign, user_idea, history):
 
     while gen_outline_thread.is_alive():
         yield [
-            aign,
-            carrier.history,
-            aign.novel_outline,
-            gr.Button(visible=False),
+            aign,  # state
+            carrier.history,  # chatbot
+            aign.novel_outline,  # textbox
+            gr.Button(visible=False),  # button - 这个应该是第4个值
         ]
         time.sleep(STREAM_INTERVAL)
     yield [
@@ -143,12 +143,12 @@ def on_generate_beginning_clicked(
 
     while gen_beginning_thread.is_alive():
         yield [
-            aign,
-            carrier.history,
-            aign.writing_plan,
-            aign.temporary_setting,
-            aign.novel_content,
-            gr.Button(visible=False),
+            aign,  # state
+            carrier.history,  # chatbot
+            aign.writing_plan,  # textbox
+            aign.temporary_setting,  # textbox
+            aign.novel_content,  # textbox
+            gr.Button(visible=False),  # button - 这个应该是第6个值
         ]
         time.sleep(STREAM_INTERVAL)
     yield [
@@ -159,7 +159,6 @@ def on_generate_beginning_clicked(
         aign.novel_content,
         gr.Button(visible=False),
     ]
-
 
 def on_generate_next_paragraph_clicked(
     aign,
@@ -195,15 +194,17 @@ def on_generate_next_paragraph_clicked(
 
     while gen_next_paragraph_thread.is_alive():
         yield [
-            aign,
-            carrier.history,
-            aign.writing_plan,
-            aign.temporary_setting,
-            aign.writing_memory,
-            aign.novel_content,
-            gr.Button(visible=False),
+            aign,  # state
+            carrier.history,  # chatbot
+            aign.writing_plan,  # textbox
+            aign.temporary_setting,  # textbox
+            aign.writing_memory,  # textbox
+            aign.novel_content,  # textbox
+            # 移除 gr.Button(visible=False) - 这是第7个值，造成不匹配
         ]
         time.sleep(STREAM_INTERVAL)
+    
+    # 最终返回也要匹配
     yield [
         aign,
         carrier.history,
@@ -211,9 +212,7 @@ def on_generate_next_paragraph_clicked(
         aign.temporary_setting,
         aign.writing_memory,
         aign.novel_content,
-        gr.Button(visible=False),
     ]
-
 
 def reset_workflow(current_aign, language):
     ui = UI_STRINGS[language]
@@ -703,6 +702,25 @@ body {
     margin-bottom: 20px;
 }
 
+/* ========== 标题行样式 ========== */
+.title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.title-row .secondary-button {
+    margin-left: auto;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    height: auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: fit-content !important;
+    flex-shrink: 0 !important;
+}
+
 /* ========== 按钮样式 ========== */
 .button-row {
     gap: 12px;
@@ -810,7 +828,11 @@ with gr.Blocks(css=css) as demo:
     language_state = gr.State(initial_language)
     aign = gr.State(AIGN(chatLLM, language=initial_language))
 
-    title_md = gr.Markdown(ui["title"])
+    with gr.Row(elem_classes=["title-row"]):
+        title_md = gr.Markdown(ui["title"])
+        language_button = gr.Button(
+            ui["language_toggle"], variant="secondary", elem_classes=["secondary-button"]
+        )
     with gr.Row(elem_classes=["main-layout"]):
         with gr.Column(scale=5, elem_id="row2"):
             chatBox = gr.Chatbot(height=f"85vh", elem_classes=["chatbot-wrapper"])
@@ -855,9 +877,6 @@ with gr.Blocks(css=css) as demo:
                     gen_ouline_button = gr.Button(ui["create_outline"], elem_classes=["primary-button"])
                 with gr.Row(elem_classes=["button-row"]):
                     reset_button = gr.Button(ui["reset"], variant="secondary", elem_classes=["secondary-button"])
-                    language_button = gr.Button(
-                        ui["language_toggle"], variant="secondary", elem_classes=["secondary-button"]
-                    )
             with gr.Tab(ui["tab_outline"]) as outline_tab:
                 novel_outline_text = gr.Textbox(
                     label=ui["outline_label"], lines=15, interactive=True, elem_classes=["outline-textbox"]

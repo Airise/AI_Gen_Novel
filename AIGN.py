@@ -73,39 +73,141 @@ class MarkdownAgent:
         return resp
 
     def extract_sections(self, input_content: str, output_keys: list) -> dict:
-        """解析类md格式中 # key 的内容，未解析全部output_keys中的key会报错"""
+        """解析类md格式中 # key 的内容"""
         if self.abort_checker and self.abort_checker():
             raise ProcessAborted()
+        
         resp = self.query(input_content)
         output = resp["content"]
+        
+        print(f"=== 开始解析输出 ===")
+        print(f"需要解析的键: {output_keys}")
+        print(f"原始输出内容:\n{output}\n")
 
         lines = output.split("\n")
         sections = {}
         current_section = ""
+        
         for line in lines:
-            if line.startswith("# ") or line.startswith(" # "):
-                # new key
+            line = line.strip()
+            if line.startswith("# "):
+                # 新的部分
                 current_section = line[2:].strip()
                 sections[current_section] = []
+                print(f"找到部分: '{current_section}'")
+            elif current_section and line:
+                # 添加到当前部分
+                sections[current_section].append(line)
+        
+        # 清理每个部分的内容
+        for key in list(sections.keys()):
+            content = "\n".join(sections[key]).strip()
+            sections[key] = content
+            print(f"部分 '{key}' 的内容长度: {len(content)}")
+            if not content:
+                print(f"警告: 部分 '{key}' 内容为空")
+                # 不删除空内容，保留以便后续智能匹配
+
+        print(f"解析出的所有键: {list(sections.keys())}")
+
+        # 智能匹配：尝试将找到的部分映射到期望的键
+        matched_sections = {}
+        unmatched_keys = []
+        used_found_keys = set()  # 记录已使用的找到的键
+        
+        for expected_key in output_keys:
+            if expected_key in sections:
+                # 直接匹配
+                matched_sections[expected_key] = sections[expected_key]
+                used_found_keys.add(expected_key)
             else:
-                # add content to current key
-                if current_section:
-                    sections[current_section].append(line.strip())
-        for key in sections.keys():
-            sections[key] = "\n".join(sections[key]).strip()
-
-        for key in output_keys:
-            if (key not in sections) or (len(sections[key]) == 0):
-                raise ValueError(f"fail to parse {key} in output:\n{output}\n\n")
-
-        # if self.is_speak:
-        #     self.speak(
-        #         Msg(
-        #             self.name,
-        #             f"total_tokens: {resp['total_tokens']}\n{resp['content']}\n",
-        #         )
-        #     )
-        return sections
+                # 尝试智能匹配
+                matched = False
+                # 对于标题类键，尝试匹配可能的标题格式
+                if "标题" in expected_key or "title" in expected_key.lower():
+                    # 优先查找包含"章"的键
+                    for found_key, found_content in sections.items():
+                        if found_key not in used_found_keys and not matched:
+                            if "章" in found_key:
+                                # 如果内容过长（>500字符），可能是段落内容被误放在标题下，只使用键名
+                                if len(found_content) > 500:
+                                    matched_sections[expected_key] = found_key
+                                    # 不标记为已使用，因为内容可能还需要用于段落
+                                    matched = True
+                                    print(f"智能匹配: 将 '{found_key}' 的键名映射到期望键 '{expected_key}'（内容过长，可能是段落）")
+                                else:
+                                    # 如果内容为空或较短，使用内容或键名
+                                    matched_sections[expected_key] = found_content if found_content else found_key
+                                    used_found_keys.add(found_key)
+                                    matched = True
+                                    print(f"智能匹配: 将 '{found_key}' 映射到期望键 '{expected_key}'")
+                                break
+                    
+                    # 如果还没匹配，查找第一个看起来像标题的部分（可能是小说标题或章节标题）
+                    if not matched:
+                        for found_key, found_content in sections.items():
+                            if found_key not in used_found_keys and not matched:
+                                # 如果这个键看起来像标题（不是常见的输出键如"开头"、"计划"等）
+                                common_keys = {"开头", "计划", "临时设定", "END", "opening", "plan", "temporary", "end", "段落", "paragraph", "segment"}
+                                if found_key not in common_keys:
+                                    # 如果内容过长（>500字符），可能是段落内容被误放在标题下，只使用键名
+                                    if len(found_content) > 500:
+                                        matched_sections[expected_key] = found_key
+                                        # 不标记为已使用，因为内容可能还需要用于段落
+                                        matched = True
+                                        print(f"智能匹配: 将 '{found_key}' 的键名映射到期望键 '{expected_key}'（内容过长，可能是段落）")
+                                    else:
+                                        # 如果内容为空或较短，使用内容或键名
+                                        matched_sections[expected_key] = found_content if found_content else found_key
+                                        used_found_keys.add(found_key)
+                                        matched = True
+                                        print(f"智能匹配: 将 '{found_key}' 映射到期望键 '{expected_key}'")
+                                    break
+                
+                # 对于段落类键，如果找不到，检查是否有标题键包含大量内容（可能是段落内容被误放在标题下）
+                elif "段落" in expected_key or "paragraph" in expected_key.lower() or "segment" in expected_key.lower():
+                    for found_key, found_content in sections.items():
+                        if not matched:
+                            # 检查这个键是否看起来像标题，但包含大量内容（可能是段落内容）
+                            common_keys = {"开头", "计划", "临时设定", "END", "opening", "plan", "temporary", "end", "段落", "paragraph", "segment"}
+                            if found_key not in common_keys and len(found_content) > 500:  # 如果内容超过500字符，可能是段落内容
+                                matched_sections[expected_key] = found_content
+                                # 注意：这里不将 found_key 添加到 used_found_keys，因为它的键名可能还需要用于标题匹配
+                                matched = True
+                                print(f"智能匹配: 将 '{found_key}' 的内容（{len(found_content)}字符）映射到期望键 '{expected_key}'")
+                                break
+                
+                if not matched:
+                    unmatched_keys.append(expected_key)
+                    print(f"错误: 缺少键 '{expected_key}'")
+        
+        # 特殊处理：如果标题键的内容被用作段落，需要确保标题键也能正确匹配
+        # 检查是否有标题类键的内容被用作段落，但标题键本身还没有被匹配
+        title_keys = [k for k in output_keys if "标题" in k or "title" in k.lower()]
+        paragraph_keys = [k for k in output_keys if "段落" in k or "paragraph" in k.lower() or "segment" in k.lower()]
+        
+        for title_key in title_keys:
+            if title_key not in matched_sections:
+                # 查找是否有段落键使用了某个标题键的内容
+                for para_key in paragraph_keys:
+                    if para_key in matched_sections:
+                        para_content = matched_sections[para_key]
+                        # 查找是哪个 found_key 的内容被用作段落
+                        for found_key, found_content in sections.items():
+                            if found_content == para_content and len(found_content) > 500:
+                                # 这个 found_key 的内容被用作段落，但键名应该是标题
+                                matched_sections[title_key] = found_key  # 使用键名作为标题
+                                used_found_keys.add(found_key)
+                                print(f"智能匹配: 将 '{found_key}' 的键名映射到期望键 '{title_key}'（内容已用于段落）")
+                                break
+                        if title_key in matched_sections:
+                            break
+        
+        if unmatched_keys:
+            raise ValueError(f"解析失败，缺少以下键: {unmatched_keys}\n完整输出:\n{output}\n已找到的部分: {list(sections.keys())}")
+        
+        print("=== 解析成功 ===")
+        return matched_sections
 
     def invoke_with_parsed_output(self, inputs: dict, output_keys: list) -> dict:
         input_content = ""
@@ -210,12 +312,27 @@ class AIGN:
     def generate_outline(self, user_idea=None):
         if user_idea:
             self.user_idea = user_idea
+        
+        # 使用新的输出键
         resp = self.novel_outline_writer.invoke_with_parsed_output(
             inputs={self.inputs["idea"]: self.user_idea},
-            output_keys=[self.keys["title"], self.keys["outline"]],
+            output_keys=[
+                self.keys["title"],
+                self.keys["estimated_chapters"],
+                self.keys["chapter_plan"], 
+                self.keys["outline"]
+            ],
         )
+        
+        # 提取所有部分
         self.novel_title = resp[self.keys["title"]]
-        self.novel_outline = resp[self.keys["outline"]]
+        estimated_chapters = resp[self.keys["estimated_chapters"]]
+        chapter_plan = resp[self.keys["chapter_plan"]]
+        detailed_outline = resp[self.keys["outline"]]
+        
+        # 组合成完整的大纲
+        self.novel_outline = f"# {self.novel_title}\n\n{estimated_chapters}\n\n{chapter_plan}\n\n{detailed_outline}"
+        
         return self.novel_outline
 
     def generate_beginning(self, user_requirements=None, embellishment_idea=None):
@@ -224,6 +341,7 @@ class AIGN:
         if embellishment_idea:
             self.embellishment_idea = embellishment_idea
 
+        # 使用新的输出键，包含标题信息
         resp = self.novel_beginning_writer.invoke_with_parsed_output(
             inputs={
                 self.inputs["idea"]: self.user_idea,
@@ -231,16 +349,25 @@ class AIGN:
                 self.inputs["requirements"]: self.user_requirements,
             },
             output_keys=[
-                self.keys["opening"],
-                self.keys["plan"],
-                self.keys["temporary"],
+                self.keys["chapter_title"],   # 第一章标题
+                self.keys["opening"],         # 开头内容
+                self.keys["plan"],            # 计划
+                self.keys["temporary"],       # 临时设定
             ],
         )
+        
+        # 提取所有信息
+        chapter_title = resp[self.keys["chapter_title"]]
         beginning = resp[self.keys["opening"]]
         self.writing_plan = resp[self.keys["plan"]]
         self.temporary_setting = resp[self.keys["temporary"]]
 
-        resp = self.novel_embellisher.invoke_with_parsed_output(
+        # 验证标题不为空
+        if not chapter_title or not chapter_title.strip():
+            raise ValueError(f"第一章标题为空，无法继续生成。解析结果: {resp}")
+
+        # 润色
+        polish_resp = self.novel_embellisher.invoke_with_parsed_output(
             inputs={
                 self.inputs["outline"]: self.novel_outline,
                 self.inputs["temporary"]: self.temporary_setting,
@@ -250,12 +377,102 @@ class AIGN:
             },
             output_keys=[self.keys["polish"]],
         )
-        beginning = resp[self.keys["polish"]]
+        # 确保使用润色后的结果
+        polished_beginning = polish_resp[self.keys["polish"]]
+        if not polished_beginning or not polished_beginning.strip():
+            # 如果润色结果为空，使用原始开头
+            print("警告: 润色结果为空，使用原始开头")
+            polished_beginning = beginning
+        beginning = polished_beginning
 
-        self.paragraphs.append(beginning)
+        # 将标题和内容组合成完整的段落
+        beginning_with_title = f"## {chapter_title.strip()}\n\n{beginning}"
+        
+        self.paragraphs.append(beginning_with_title)
         self.update_novel_content()
 
-        return beginning
+        return beginning_with_title
+
+    def _extract_chapter_number_from_title(self, title: str) -> int:
+        """从章节标题中提取章节号，例如'第1章：xxx'或'第一章：xxx'"""
+        import re
+        # 匹配"第X章"或"第一章"等格式
+        match = re.search(r'第([一二三四五六七八九十\d]+)章', title)
+        if match:
+            num_str = match.group(1)
+            # 处理中文数字
+            chinese_nums = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, 
+                          '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+            if num_str in chinese_nums:
+                return chinese_nums[num_str]
+            try:
+                return int(num_str)
+            except:
+                pass
+        return 0
+
+    def _get_current_chapter_info(self):
+        """获取当前已写的章节信息"""
+        if not self.paragraphs:
+            return 0, None
+        
+        # 从已有段落中提取章节标题
+        chapter_titles = []
+        for para in self.paragraphs:
+            lines = para.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith('## '):
+                    title = line[3:].strip()
+                    chapter_titles.append(title)
+                    break
+        
+        if not chapter_titles:
+            return 0, None
+        
+        # 获取最后一个章节标题
+        last_title = chapter_titles[-1]
+        last_chapter_num = self._extract_chapter_number_from_title(last_title)
+        
+        return len(chapter_titles), last_chapter_num
+
+    def _extract_next_chapter_title_from_outline(self):
+        """从大纲中提取下一章的标题"""
+        import re
+        if not self.novel_outline:
+            return None
+        
+        # 获取当前章节信息
+        chapter_count, last_chapter_num = self._get_current_chapter_info()
+        # 确定下一章的章节号
+        if last_chapter_num > 0:
+            next_chapter_num = last_chapter_num + 1
+        else:
+            # 如果没有找到章节号，使用章节数量+1
+            next_chapter_num = chapter_count + 1
+        
+        # 在大纲中查找对应章节
+        # 匹配格式：第X章：标题 - 描述
+        pattern = rf'第{next_chapter_num}章[：:]\s*([^-\n]+)'
+        match = re.search(pattern, self.novel_outline)
+        if match:
+            title = match.group(1).strip()
+            # 清理标题，去除可能的描述部分
+            if ' - ' in title or ' -' in title:
+                title = title.split(' -')[0].strip()
+            return title
+        
+        # 如果没找到，尝试查找"第X章"后面紧跟的标题（更宽松的匹配）
+        pattern = rf'第{next_chapter_num}章[：:]\s*([^\n]+)'
+        match = re.search(pattern, self.novel_outline)
+        if match:
+            title_with_desc = match.group(1).strip()
+            # 如果有"-"，取"-"前面的部分
+            if ' - ' in title_with_desc or ' -' in title_with_desc:
+                return title_with_desc.split(' -')[0].strip()
+            return title_with_desc
+        
+        return None
 
     def get_recent_context(self, max_length=2000):
         recent_context = ""
@@ -305,6 +522,18 @@ class AIGN:
             self.embellishment_idea = embellishment_idea
 
         recent_context = self.get_recent_context()
+        
+        # 从大纲中提取下一章的标题
+        expected_chapter_title = self._extract_next_chapter_title_from_outline()
+        chapter_count, last_chapter_num = self._get_current_chapter_info()
+        next_chapter_num = last_chapter_num + 1 if last_chapter_num > 0 else chapter_count + 1
+        
+        # 如果找到了预期的章节标题，在用户要求中添加提示
+        chapter_hint = ""
+        if expected_chapter_title:
+            chapter_hint = f"\n\n重要提示：当前应该写第{next_chapter_num}章，章节标题应该是：{expected_chapter_title}。请务必使用这个标题，不要使用之前的章节标题。"
+        
+        user_req_with_hint = (self.user_requirements or "") + chapter_hint
 
         resp = self.novel_writer.invoke_with_parsed_output(
             inputs={
@@ -313,43 +542,81 @@ class AIGN:
                 self.inputs["memory_prev"]: self.writing_memory,
                 self.inputs["temporary"]: self.temporary_setting,
                 self.inputs["plan"]: self.writing_plan,
-                self.inputs["requirements"]: self.user_requirements,
+                self.inputs["requirements"]: user_req_with_hint,
                 self.inputs["previous"]: recent_context,
             },
             output_keys=[
-                self.keys["paragraph"],
-                self.keys["plan"],
-                self.keys["temporary"],
+                self.keys["paragraph_title"],   # 当前章节标题
+                self.keys["paragraph"],       # 段落内容
+                self.keys["plan"],            # 计划
+                self.keys["temporary"],       # 临时设定
             ],
         )
+        
+        paragraph_title = resp[self.keys["paragraph_title"]]
         next_paragraph = resp[self.keys["paragraph"]]
         next_writing_plan = resp[self.keys["plan"]]
         next_temp_setting = resp[self.keys["temporary"]]
 
-        resp = self.novel_embellisher.invoke_with_parsed_output(
+        # 验证标题不为空
+        if not paragraph_title or not paragraph_title.strip():
+            # 如果标题为空，尝试使用从大纲中提取的标题
+            if expected_chapter_title:
+                print(f"警告: LLM返回的标题为空，使用从大纲中提取的标题: {expected_chapter_title}")
+                paragraph_title = expected_chapter_title
+            else:
+                raise ValueError(f"章节标题为空，无法继续生成。解析结果: {resp}")
+        # 如果找到了预期的章节标题，验证返回的标题是否正确
+        elif expected_chapter_title:
+            # 检查返回的标题是否与预期标题匹配（允许部分匹配，因为可能包含"第X章："前缀）
+            returned_title_clean = paragraph_title.strip()
+            expected_title_clean = expected_chapter_title.strip()
+            
+            # 如果返回的标题不包含预期的标题，使用预期的标题
+            if expected_title_clean not in returned_title_clean and returned_title_clean not in expected_title_clean:
+                # 检查是否是同一章节的不同表示方式
+                returned_chapter_num = self._extract_chapter_number_from_title(returned_title_clean)
+                if returned_chapter_num != next_chapter_num:
+                    print(f"警告: LLM返回的标题 '{returned_title_clean}' 与预期标题 '{expected_chapter_title}' 不匹配，使用预期标题")
+                    paragraph_title = expected_chapter_title
+                # 如果章节号匹配，但标题不同，可能是LLM使用了不同的标题格式，保留LLM的标题但记录警告
+                else:
+                    print(f"提示: LLM返回的标题 '{returned_title_clean}' 与大纲中的标题 '{expected_chapter_title}' 不同，但章节号匹配，保留LLM的标题")
+
+        # 润色
+        polish_resp = self.novel_embellisher.invoke_with_parsed_output(
             inputs={
                 self.inputs["outline"]: self.novel_outline,
                 self.inputs["temporary"]: next_temp_setting,
                 self.inputs["plan"]: next_writing_plan,
-                self.inputs["polish"]: embellishment_idea,
+                self.inputs["polish"]: self.embellishment_idea,
                 self.inputs["context"]: recent_context,
                 self.inputs["polish_target"]: next_paragraph,
             },
             output_keys=[self.keys["polish"]],
         )
-        next_paragraph = resp[self.keys["polish"]]
+        # 确保使用润色后的结果
+        polished_paragraph = polish_resp[self.keys["polish"]]
+        if not polished_paragraph or not polished_paragraph.strip():
+            # 如果润色结果为空，使用原始段落
+            print("警告: 润色结果为空，使用原始段落")
+            polished_paragraph = next_paragraph
+        next_paragraph = polished_paragraph
 
-        self.paragraphs.append(next_paragraph)
+        # 将章节标题和内容组合
+        paragraph_with_title = f"## {paragraph_title.strip()}\n\n{next_paragraph}"
+        
+        self.paragraphs.append(paragraph_with_title)
         self.writing_plan = next_writing_plan
         self.temporary_setting = next_temp_setting
 
+        # 使用润色后的内容更新记忆
         self.pending_memory_text += f"\n{next_paragraph}"
-
         self.update_memory()
         self.update_novel_content()
         self.record_novel()
 
-        return next_paragraph
+        return paragraph_with_title
 
     def request_abort(self):
         self._abort_flag = True
