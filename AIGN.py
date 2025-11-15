@@ -139,6 +139,7 @@ class AIGN:
 
     def _reset_story_state(self):
         self._abort_flag = False
+        self.novel_title = ""
         self.novel_outline = ""
         self.paragraphs = []
         self.novel_content = ""
@@ -211,8 +212,9 @@ class AIGN:
             self.user_idea = user_idea
         resp = self.novel_outline_writer.invoke_with_parsed_output(
             inputs={self.inputs["idea"]: self.user_idea},
-            output_keys=[self.keys["outline"]],
+            output_keys=[self.keys["title"], self.keys["outline"]],
         )
+        self.novel_title = resp[self.keys["title"]]
         self.novel_outline = resp[self.keys["outline"]]
         return self.novel_outline
 

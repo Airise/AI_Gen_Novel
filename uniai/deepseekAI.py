@@ -8,7 +8,8 @@ def deepseekChatLLM(model_name="deepseek-chat", api_key=None):
     model_name 取值
     - deepseek-chat
     """
-    api_key = os.environ.get("DEEPSEEK_AI_API_KEY", api_key)
+    #api_key = os.environ.get("DEEPSEEK_AI_API_KEY", api_key)
+    api_key = "sk-055c36e816314145bfe7b8bb7510f340"
     client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
 
     def chatLLM(
@@ -42,14 +43,14 @@ def deepseekChatLLM(model_name="deepseek-chat", api_key=None):
 
             def respGenerator():
                 content = ""
+                total_tokens = None
                 for response in responses:
-                    delta = response.choices[0].delta.content
+                    delta = response.choices[0].delta.content or ""
                     content += delta
 
-                    # if response.usage:
-                    #     total_tokens = response.usage.total_tokens
-                    # else:
-                    total_tokens = None
+                    usage = getattr(response, "usage", None)
+                    if usage and getattr(usage, "total_tokens", None) is not None:
+                        total_tokens = usage.total_tokens
 
                     yield {
                         "content": content,
