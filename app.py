@@ -12,7 +12,6 @@ STREAM_INTERVAL = 0.
 UI_STRINGS = {
     "zh": {
         "title": "## 小说创作工作台",
-        "flow_hint": "依次完成：梳理想法 → 标注大纲 → 生成开头 → 关注状态 → 续写下一段",
         "tab_start": "开始",
         "tab_outline": "大纲",
         "tab_status": "状态",
@@ -36,7 +35,6 @@ UI_STRINGS = {
     },
     "en": {
         "title": "## Novel Writing Studio",
-        "flow_hint": "Workflow: Capture idea → Shape outline → Polish opening → Review status → Continue drafting",
         "tab_start": "Start",
         "tab_outline": "Outline",
         "tab_status": "Status",
@@ -249,7 +247,6 @@ def toggle_language(current_aign, current_language):
         refreshed_aign,
         new_language,
         gr.update(value=ui["title"]),
-        gr.update(value=ui["flow_hint"]),
         gr.update(
             value="",
             label=ui["idea_label"],
@@ -289,21 +286,23 @@ def toggle_language(current_aign, current_language):
 css = """
 /* ========== 全局样式 ========== */
 body {
-    background: #fafafa;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-    color: #333333;
+    color: #2d3748;
+    min-height: 100vh;
 }
 
 .gradio-container {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
     max-width: 100%;
-    padding: 20px;
+    padding: 24px;
+    background: transparent;
 }
 
 /* ========== 主布局 ========== */
 .main-layout {
-    gap: 16px;
-    margin-top: 16px;
+    gap: 20px;
+    margin-top: 20px;
 }
 
 /* ========== 左侧功能区 - 创作对话 ========== */
@@ -314,9 +313,15 @@ body {
     overflow: auto;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 24px;
-    margin-right: 16px;
+    border-radius: 12px;
+    padding: 28px;
+    margin-right: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s ease;
+}
+
+#row2:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .chatbot-wrapper {
@@ -341,11 +346,20 @@ body {
 .chatbot-wrapper .chatbot > div > div:first-child,
 .chatbot-wrapper .chatbot [class*="user"],
 .chatbot-wrapper .chatbot [class*="User"] {
-    background: #e6f7ff !important;
-    border-radius: 4px !important;
-    padding: 12px 16px !important;
-    margin: 8px 0 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    background: linear-gradient(135deg, #e6f7ff 0%, #d4edff 100%) !important;
+    border-radius: 12px 12px 4px 12px !important;
+    padding: 14px 18px !important;
+    margin: 10px 0 !important;
+    box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15) !important;
+    border-left: 3px solid #4299e1 !important;
+    transition: all 0.2s ease !important;
+}
+
+.chatbot-wrapper .chatbot > div > div:first-child:hover,
+.chatbot-wrapper .chatbot [class*="user"]:hover,
+.chatbot-wrapper .chatbot [class*="User"]:hover {
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.2) !important;
+    transform: translateX(-2px);
 }
 
 /* AI消息 */
@@ -353,11 +367,21 @@ body {
 .chatbot-wrapper .chatbot [class*="assistant"],
 .chatbot-wrapper .chatbot [class*="Assistant"],
 .chatbot-wrapper .chatbot [class*="bot"] {
-    background: #f5fafe !important;
-    border-radius: 4px !important;
-    padding: 12px 16px !important;
-    margin: 8px 0 !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    border-radius: 12px 12px 12px 4px !important;
+    padding: 14px 18px !important;
+    margin: 10px 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    border-left: 3px solid #94a3b8 !important;
+    transition: all 0.2s ease !important;
+}
+
+.chatbot-wrapper .chatbot > div > div:not(:first-child):hover,
+.chatbot-wrapper .chatbot [class*="assistant"]:hover,
+.chatbot-wrapper .chatbot [class*="Assistant"]:hover,
+.chatbot-wrapper .chatbot [class*="bot"]:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+    transform: translateX(2px);
 }
 
 /* 通用消息样式 */
@@ -376,9 +400,15 @@ body {
     overflow: auto;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 24px;
-    margin: 0 16px;
+    border-radius: 12px;
+    padding: 28px;
+    margin: 0 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s ease;
+}
+
+#row3:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .novel-textbox {
@@ -395,16 +425,17 @@ body {
 
 .novel-textbox textarea {
     font-size: 16px !important;
-    line-height: 1.6 !important;
-    color: #333333 !important;
-    padding: 16px !important;
+    line-height: 1.8 !important;
+    color: #2d3748 !important;
+    padding: 20px !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 6px !important;
-    background: #ffffff !important;
+    border-radius: 10px !important;
+    background: #fafbfc !important;
     min-height: 600px !important;
     max-height: calc(88vh - 100px) !important;
     overflow-y: auto !important;
     resize: vertical !important;
+    transition: all 0.3s ease !important;
 }
 
 .novel-textbox textarea::-webkit-scrollbar {
@@ -428,7 +459,8 @@ body {
 .novel-textbox textarea:focus {
     border-color: #4299e1 !important;
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.12), 0 2px 8px rgba(66, 153, 225, 0.15) !important;
+    background: #ffffff !important;
 }
 
 /* 复制按钮样式 */
@@ -473,41 +505,71 @@ body {
     overflow: hidden;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 20px;
-    margin-left: 16px;
+    border-radius: 12px;
+    padding: 24px;
+    margin-left: 20px;
     display: flex;
     flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s ease;
+}
+
+#row1:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 /* 标签页样式 */
 .gr-tabs {
     border-bottom: 2px solid #e2e8f0;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     padding-bottom: 0;
+    background: linear-gradient(to bottom, #f8fafc, #ffffff);
+    border-radius: 8px 8px 0 0;
+    padding: 4px 4px 0 4px;
 }
 
 .gr-tabs button {
-    padding: 12px 20px;
-    font-weight: 500;
+    padding: 12px 24px;
+    font-weight: 600;
     color: #64748b;
     border: none;
-    background: #f8fafc;
-    border-bottom: 2px solid transparent;
-    transition: all 0.3s ease;
+    background: transparent;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin-right: 4px;
-    border-radius: 6px 6px 0 0;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+}
+
+.gr-tabs button::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #4299e1;
+    transform: scaleX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .gr-tabs button:hover {
-    background: #f1f5f9;
-    color: #2d3748;
+    background: rgba(66, 153, 225, 0.08);
+    color: #4299e1;
+}
+
+.gr-tabs button:hover::before {
+    transform: scaleX(0.5);
 }
 
 .gr-tabs button.selected {
     color: #4299e1;
-    background: #ffffff;
+    background: rgba(66, 153, 225, 0.1);
     border-bottom-color: #4299e1;
+}
+
+.gr-tabs button.selected::before {
+    transform: scaleX(1);
 }
 
 /* 标签页内容区 */
@@ -516,6 +578,13 @@ body {
     max-height: calc(88vh - 120px);
     padding: 8px 0;
     animation: fadeIn 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 确保开始标签页的按钮始终在底部可见 */
+#row1 .tab:first-child {
+    justify-content: space-between;
 }
 
 @keyframes fadeIn {
@@ -549,19 +618,46 @@ body {
 
 /* 流程提示 */
 .flow-hint {
-    background: #f8fafc;
-    border-left: 3px solid #4299e1;
-    padding: 12px 16px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-    color: #64748b;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-left: 4px solid #4299e1;
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin-bottom: 24px;
+    color: #475569;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.7;
+    box-shadow: 0 2px 6px rgba(66, 153, 225, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.flow-hint::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #4299e1, #3182ce);
 }
 
 /* 输入框样式 */
 .input-field {
     margin-bottom: 15px;
+    max-height: 140px;
+    overflow: hidden;
+    background: transparent !important;
+}
+
+.input-field > div,
+.input-field > div > div {
+    background: transparent !important;
+    border: none !important;
+}
+
+.input-field .wrap {
+    background: transparent !important;
+    border: none !important;
 }
 
 .input-field label {
@@ -574,20 +670,43 @@ body {
 
 .input-field textarea,
 .input-field input[type="text"] {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 6px !important;
-    padding: 12px 14px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 14px 16px !important;
     font-size: 14px !important;
-    color: #333333 !important;
+    color: #2d3748 !important;
     background: #ffffff !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    max-height: 120px !important;
+    overflow-y: auto !important;
+    resize: vertical !important;
+}
+
+.input-field textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.input-field textarea::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 3px;
+}
+
+.input-field textarea::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.input-field textarea::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
 }
 
 .input-field textarea:focus,
 .input-field input[type="text"]:focus {
     border-color: #4299e1 !important;
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.12), 0 2px 6px rgba(66, 153, 225, 0.1) !important;
+    background: #ffffff !important;
+    transform: translateY(-1px);
 }
 
 .input-field textarea::placeholder,
@@ -595,9 +714,40 @@ body {
     color: #94a3b8 !important;
 }
 
+/* 移除Gradio默认的输入框容器样式 */
+.input-field .form,
+.input-field .form-group,
+.input-field .gr-textbox,
+.input-field [class*="textbox"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 移除输入框容器底部的灰色边框 */
+.input-field [class*="wrap"],
+.input-field [class*="container"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
+}
+
 /* 大纲文本框 */
 .outline-textbox {
     margin-bottom: 16px;
+    background: transparent !important;
+}
+
+.outline-textbox > div,
+.outline-textbox > div > div {
+    background: transparent !important;
+    border: none !important;
+}
+
+.outline-textbox .wrap {
+    background: transparent !important;
+    border: none !important;
 }
 
 .outline-textbox label {
@@ -644,9 +794,35 @@ body {
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
 }
 
+/* 移除大纲文本框容器的默认样式 */
+.outline-textbox .form,
+.outline-textbox .form-group,
+.outline-textbox .gr-textbox,
+.outline-textbox [class*="textbox"],
+.outline-textbox [class*="wrap"],
+.outline-textbox [class*="container"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
 /* 状态字段 */
 .status-field {
     margin-bottom: 20px;
+    background: transparent !important;
+}
+
+.status-field > div,
+.status-field > div > div {
+    background: transparent !important;
+    border: none !important;
+}
+
+.status-field .wrap {
+    background: transparent !important;
+    border: none !important;
 }
 
 .status-field label {
@@ -696,6 +872,20 @@ body {
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
 }
 
+/* 移除状态字段容器的默认样式 */
+.status-field .form,
+.status-field .form-group,
+.status-field .gr-textbox,
+.status-field [class*="textbox"],
+.status-field [class*="wrap"],
+.status-field [class*="container"] {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
 /* 状态标签页按钮底部间距 - 确保按钮始终可见 */
 .tab .primary-button:last-child {
     margin-top: 20px;
@@ -712,19 +902,21 @@ body {
 
 .title-row .secondary-button {
     margin-left: auto;
-    padding: 6px 12px !important;
+    padding: 8px 16px !important;
     font-size: 13px !important;
     height: auto !important;
     width: auto !important;
     min-width: auto !important;
     max-width: fit-content !important;
     flex-shrink: 0 !important;
+    border-radius: 8px !important;
 }
 
 /* ========== 按钮样式 ========== */
 .button-row {
     gap: 12px;
     margin-top: 16px;
+    flex-shrink: 0;
 }
 
 .button-row button {
@@ -733,43 +925,71 @@ body {
 
 /* 主要按钮 */
 .primary-button {
-    background: #4299e1 !important;
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%) !important;
     color: #ffffff !important;
     border: none !important;
-    border-radius: 6px !important;
-    padding: 12px 24px !important;
+    border-radius: 8px !important;
+    padding: 14px 28px !important;
     font-weight: 600 !important;
     font-size: 14px !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
+    box-shadow: 0 2px 6px rgba(66, 153, 225, 0.25), 0 1px 3px rgba(66, 153, 225, 0.15) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.primary-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
 }
 
 .primary-button:hover {
-    background: #3182ce !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(66, 153, 225, 0.3) !important;
+    background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(66, 153, 225, 0.35), 0 3px 8px rgba(66, 153, 225, 0.2) !important;
+}
+
+.primary-button:hover::before {
+    left: 100%;
 }
 
 .primary-button:active {
     transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3) !important;
 }
 
 /* 次要按钮 */
 .secondary-button {
-    background: #f1f5f9 !important;
-    color: #2d3748 !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 6px !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    color: #475569 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
     padding: 12px 24px !important;
     font-weight: 500 !important;
     font-size: 14px !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
 .secondary-button:hover {
-    background: #e2e8f0 !important;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
     border-color: #cbd5e0 !important;
+    color: #2d3748 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.secondary-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ========== 标题样式 ========== */
@@ -848,7 +1068,6 @@ with gr.Blocks(css=css) as demo:
             # download_novel_button = gr.Button("下载小说")
         with gr.Column(scale=0, elem_id="row1", min_width=350):
             with gr.Tab(ui["tab_start"]) as start_tab:
-                flow_md = gr.Markdown(ui["flow_hint"], elem_classes=["flow-hint"])
                 user_idea_text = gr.Textbox(
                     "",
                     label=ui["idea_label"],
@@ -930,7 +1149,6 @@ with gr.Blocks(css=css) as demo:
             aign,
             language_state,
             title_md,
-            flow_md,
             user_idea_text,
             user_requirements_text,
             embellishment_idea_text,
