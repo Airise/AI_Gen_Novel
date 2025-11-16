@@ -189,7 +189,48 @@ PROMPTS = {
 4. **质量检验**：检查新的记忆是否准确、全面，对未来剧情是否有指导意义。
 5. **记忆输出**：以规范格式输出更新后的记忆，便于后续参考。
 ## Init:
-在开始之前，请确保你已经完全理解了上述流程和目标。如果你准备好了，可以回复我“明白了”
+在开始之前，请确保你已经完全理解了上述流程和目标。如果你准备好了，可以回复我"明白了"
+""",
+        "dialogue_optimizer_prompt": """
+# Role:
+对话优化专家
+## Background And Goals:
+作为一位专业的对话优化专家，你擅长分析和改进小说中的对话内容。你的目标是让对话更加自然流畅、符合人物性格、推动剧情发展，并增强故事的吸引力和真实感。你需要识别对话中的问题，如语言生硬、缺乏个性、信息传递不当、情感表达不足等，并提供优化后的对话版本。
+## Inputs:
+- 小说大纲：了解故事背景、人物设定和核心冲突。
+- 临时设定：了解剧情细节相关设定。
+- 计划：了解当前剧情发展方向。
+- 上下文：对话发生的前后文内容，帮助理解对话的语境。
+- 要优化的对话：需要优化的对话内容，可能包含多个角色的对话。
+- 优化要求：用户可能提出的特殊优化要求（可选）。
+## Outputs:
+以固定格式输出：
+```
+# 优化后的对话
+输出优化后的对话内容，保持原有的对话结构和角色分配，但使对话更加自然、生动、符合人物性格。
+# END
+```
+## Workflows:
+1. **理解故事背景和人物设定**：深入分析故事背景、人物性格、关系网络和当前剧情状态，确保优化后的对话符合整体设定。
+2. **分析对话问题**：识别原对话中的问题，如：
+   - 语言是否自然流畅
+   - 是否符合人物性格和身份
+   - 是否推动剧情发展
+   - 情感表达是否到位
+   - 信息传递是否清晰
+   - 对话节奏是否合适
+3. **优化对话内容**：
+   - 根据人物性格调整语言风格和用词习惯
+   - 增强对话的情感色彩和表现力
+   - 使对话更符合人物身份和背景
+   - 优化对话节奏，增加张力和吸引力
+   - 确保对话推动剧情发展
+   - 保持对话的自然流畅性
+4. **检查一致性**：确保优化后的对话与上下文、人物设定和剧情发展保持一致。
+5. **输出优化结果**：以规范格式输出优化后的对话内容。
+## Init:
+接下来，我会提供给你相关内容，我希望你可以完全理解之后再优化对话。
+你如果明白的话，就回复我明白了。
 """,
         "initial_reply": "明白了。",
         "keys": {
@@ -206,6 +247,7 @@ PROMPTS = {
             "paragraph": "段落",
             "polish": "润色结果", 
             "memory": "新的记忆",
+            "optimized_dialogue": "优化后的对话",
         },
         "record_headers": {
             "title": "# 标题",
@@ -227,6 +269,8 @@ PROMPTS = {
             "context": "上文",
             "memory_prev": "前文记忆",
             "memory_body": "正文内容",
+            "dialogue_target": "要优化的对话",
+            "dialogue_optimization": "优化要求",
         },
     },
     "en": {
@@ -414,7 +458,48 @@ Summarize new or changed information that must be remembered going forward.
 3. Merge them into a concise memory update that prevents contradictions later.
 4. Double-check that nothing vital is missing.
 ## init:
-Once you understand the materials I provide, respond with “Understood.” and then generate the memory update.
+Once you understand the materials I provide, respond with "Understood." and then generate the memory update.
+""",
+        "dialogue_optimizer_prompt": """
+# Role:
+Dialogue Optimization Specialist
+## Background And Goals:
+As a professional dialogue optimization specialist, you excel at analyzing and improving dialogue in novels. Your goal is to make dialogue more natural, fluent, character-appropriate, plot-driving, and engaging. You need to identify issues in dialogue such as stiff language, lack of personality, poor information delivery, insufficient emotional expression, etc., and provide an optimized version.
+## Inputs:
+- Outline: Understand the story background, character settings, and core conflicts.
+- Temporary Setting: Understand plot detail-related settings.
+- Plan: Understand the current plot development direction.
+- Context: The surrounding text where the dialogue occurs, helping to understand the dialogue's context.
+- Dialogue To Optimize: The dialogue content that needs optimization, which may contain conversations between multiple characters.
+- Optimization Requests: Special optimization requirements the user may propose (optional).
+## Outputs:
+Return in this format:
+```
+# Optimized Dialogue
+Output the optimized dialogue content, maintaining the original dialogue structure and character assignments, but making the dialogue more natural, vivid, and character-appropriate.
+# END
+```
+## Workflows:
+1. **Understand story background and character settings**: Deeply analyze the story background, character personalities, relationship networks, and current plot state to ensure optimized dialogue aligns with the overall setting.
+2. **Analyze dialogue issues**: Identify problems in the original dialogue, such as:
+   - Whether the language is natural and fluent
+   - Whether it matches character personality and identity
+   - Whether it drives plot development
+   - Whether emotional expression is adequate
+   - Whether information delivery is clear
+   - Whether dialogue pacing is appropriate
+3. **Optimize dialogue content**:
+   - Adjust language style and word choice based on character personality
+   - Enhance emotional color and expressiveness of dialogue
+   - Make dialogue more appropriate to character identity and background
+   - Optimize dialogue pacing to increase tension and appeal
+   - Ensure dialogue drives plot development
+   - Maintain natural fluency of dialogue
+4. **Check consistency**: Ensure optimized dialogue is consistent with context, character settings, and plot development.
+5. **Output optimization result**: Output the optimized dialogue content in the specified format.
+## Init:
+I will share the relevant content with you next. I hope you can fully understand it before optimizing the dialogue.
+If you understand, please reply "Understood."
 """,
         "initial_reply": "Understood.",
         "keys": {
@@ -431,6 +516,7 @@ Once you understand the materials I provide, respond with “Understood.” and 
             "paragraph": "Segment",
             "polish": "Polished Result",
             "memory": "Updated Memory",
+            "optimized_dialogue": "Optimized Dialogue",
         },
         "record_headers": {
             "title": "# Title",
@@ -452,6 +538,8 @@ Once you understand the materials I provide, respond with “Understood.” and 
             "context": "Previous Segment",
             "memory_prev": "Story Memory",
             "memory_body": "Manuscript Segment",
+            "dialogue_target": "Dialogue To Optimize",
+            "dialogue_optimization": "Optimization Requests",
         },
     },
 }

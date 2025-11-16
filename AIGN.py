@@ -302,6 +302,14 @@ class AIGN:
             initial_reply=self.config["initial_reply"],
             abort_checker=self.is_aborted,
         )
+        self.dialogue_optimizer = MarkdownAgent(
+            chat_llm=self.chat_llm,
+            system_prompt=self.config["dialogue_optimizer_prompt"],
+            name="DialogueOptimizer",
+            temperature=0.75,
+            initial_reply=self.config["initial_reply"],
+            abort_checker=self.is_aborted,
+        )
 
     def update_novel_content(self):
         self.novel_content = ""
@@ -617,6 +625,41 @@ class AIGN:
         self.record_novel()
 
         return paragraph_with_title
+
+    def optimize_dialogue(self, dialogue_content, context=None, optimization_requirements=None):
+        """
+        优化小说中的对话内容
+        
+        Args:
+            dialogue_content: 要优化的对话内容
+            context: 对话发生的上下文（可选）
+            optimization_requirements: 用户提出的特殊优化要求（可选）
+        
+        Returns:
+            优化后的对话内容
+        """
+        if self.is_aborted():
+            raise ProcessAborted()
+        
+        inputs = {
+            self.inputs["outline"]: self.novel_outline,
+            self.inputs["temporary"]: self.temporary_setting,
+            self.inputs["plan"]: self.writing_plan,
+            self.inputs["dialogue_target"]: dialogue_content,
+        }
+        
+        if context:
+            inputs[self.inputs["context"]] = context
+        
+        if optimization_requirements:
+            inputs[self.inputs["dialogue_optimization"]] = optimization_requirements
+        
+        resp = self.dialogue_optimizer.invoke_with_parsed_output(
+            inputs=inputs,
+            output_keys=[self.keys["optimized_dialogue"]],
+        )
+        
+        return resp[self.keys["optimized_dialogue"]]
 
     def request_abort(self):
         self._abort_flag = True
