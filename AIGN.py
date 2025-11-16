@@ -8,6 +8,11 @@ class ProcessAborted(Exception):
     pass
 
 
+class StoryEnded(Exception):
+    """Raised when the story has reached its final chapter."""
+    pass
+
+
 def retry_operation(func, max_retries=10):
     def wrapper(*args, **kwargs):
         for _ in range(max_retries):
@@ -252,6 +257,7 @@ class AIGN:
         self.user_idea = ""
         self.user_requirements = ""
         self.embellishment_idea = ""
+        self._story_completed = False
 
     def _apply_language(self, language):
         if language not in PROMPTS:
@@ -370,6 +376,10 @@ class AIGN:
         self.writing_plan = resp[self.keys["plan"]]
         self.temporary_setting = resp[self.keys["temporary"]]
 
+        # 清理标题，去除可能的描述性文字
+        if chapter_title:
+            chapter_title = self._clean_chapter_title(chapter_title)
+
         # 验证标题不为空
         if not chapter_title or not chapter_title.strip():
             raise ValueError(f"第一章标题为空，无法继续生成。解析结果: {resp}")
@@ -442,7 +452,160 @@ class AIGN:
         last_title = chapter_titles[-1]
         last_chapter_num = self._extract_chapter_number_from_title(last_title)
         
+        # 如果无法从标题中提取章节号，尝试从大纲中匹配标题来获取章节号
+        if last_chapter_num <= 0 and self.novel_outline:
+            last_chapter_num = self._match_title_to_chapter_number(last_title)
+        
         return len(chapter_titles), last_chapter_num
+    
+    def _match_title_to_chapter_number(self, title):
+        """通过匹配标题从大纲中获取章节号"""
+        import re
+        if not self.novel_outline or not title:
+            return 0
+        
+        # 在大纲中查找包含该标题的章节
+        # 尝试匹配格式：第X章：标题 或 第X章：标题 - 描述
+        lines = self.novel_outline.split('\n')
+        for line in lines:
+            # 查找包含该标题的行
+            if title in line:
+                # 尝试从该行提取章节号
+                match = re.search(r'第([一二三四五六七八九十\d]+)章', line)
+                if match:
+                    num_str = match.group(1)
+                    chinese_nums = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, 
+                                  '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+                    if num_str in chinese_nums:
+                        return chinese_nums[num_str]
+                    try:
+                        return int(num_str)
+                    except:
+                        pass
+        
+        # 如果直接匹配失败，尝试模糊匹配（标题的一部分）
+        title_keywords = title.split()[:2]  # 取标题的前两个词
+        for keyword in title_keywords:
+            if len(keyword) > 1:  # 只匹配长度大于1的关键词
+                for line in lines:
+                    if keyword in line:
+                        match = re.search(r'第([一二三四五六七八九十\d]+)章', line)
+                        if match:
+                            num_str = match.group(1)
+                            chinese_nums = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, 
+                                          '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+                            if num_str in chinese_nums:
+                                return chinese_nums[num_str]
+                            try:
+                                return int(num_str)
+                            except:
+                                pass
+                            break
+        
+        return 0
+
+    def _extract_max_chapter_number_from_outline(self):
+        """从大纲中提取最大章节号"""
+        import re
+        if not self.novel_outline:
+            return None
+        
+        # 查找所有章节号
+        pattern = r'第([一二三四五六七八九十\d]+)章'
+        matches = re.findall(pattern, self.novel_outline)
+        
+        if not matches:
+            return None
+        
+        max_chapter_num = 0
+        chinese_nums = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, 
+                      '六': 6, '七': 7, '八': 8, '九': 9, '十': 10}
+        
+        for num_str in matches:
+            if num_str in chinese_nums:
+                num = chinese_nums[num_str]
+            else:
+                try:
+                    num = int(num_str)
+                except:
+                    continue
+            max_chapter_num = max(max_chapter_num, num)
+        
+        return max_chapter_num if max_chapter_num > 0 else None
+
+    def _is_last_chapter(self):
+        """检查是否已经到达最后一章"""
+        if self._story_completed:
+            return True
+        
+        if not self.novel_outline:
+            return False
+        
+        # 获取当前章节信息
+        chapter_count, last_chapter_num = self._get_current_chapter_info()
+        
+        if last_chapter_num <= 0:
+            return False
+        
+        # 从大纲中提取最大章节号
+        max_chapter_num = self._extract_max_chapter_number_from_outline()
+        
+        if max_chapter_num is None:
+            return False
+        
+        # 如果当前章节号等于或大于最大章节号，说明已经到达最后一章
+        is_last = last_chapter_num >= max_chapter_num
+        if is_last:
+            print(f"检测到最后一章: 当前章节号={last_chapter_num}, 最大章节号={max_chapter_num}")
+        return is_last
+    
+    def _will_exceed_max_chapter(self):
+        """检查下一章是否会超过最大章节号"""
+        if not self.novel_outline:
+            return False
+        
+        # 获取当前章节信息
+        chapter_count, last_chapter_num = self._get_current_chapter_info()
+        
+        # 确定下一章的章节号
+        if last_chapter_num > 0:
+            next_chapter_num = last_chapter_num + 1
+        else:
+            next_chapter_num = chapter_count + 1
+        
+        # 从大纲中提取最大章节号
+        max_chapter_num = self._extract_max_chapter_number_from_outline()
+        
+        if max_chapter_num is None:
+            return False
+        
+        # 如果下一章超过最大章节号，说明已经完成
+        will_exceed = next_chapter_num > max_chapter_num
+        if will_exceed:
+            print(f"下一章将超过最大章节号: 下一章={next_chapter_num}, 最大章节号={max_chapter_num}")
+        return will_exceed
+
+    def _clean_chapter_title(self, title):
+        """清理章节标题，去除描述性文字"""
+        import re
+        if not title:
+            return title
+        
+        title = title.strip()
+        
+        # 去除"第X章："前缀（如果存在）
+        title = re.sub(r'^第[一二三四五六七八九十\d]+章[：:]\s*', '', title)
+        
+        # 如果包含" - "或" -"，只保留"-"前面的部分
+        if ' - ' in title:
+            title = title.split(' - ')[0].strip()
+        elif ' -' in title:
+            title = title.split(' -')[0].strip()
+        
+        # 去除末尾可能的多余空格和标点
+        title = title.rstrip('，。、；：')
+        
+        return title
 
     def _extract_next_chapter_title_from_outline(self):
         """从大纲中提取下一章的标题"""
@@ -459,26 +622,20 @@ class AIGN:
             # 如果没有找到章节号，使用章节数量+1
             next_chapter_num = chapter_count + 1
         
+        # 检查是否超过最大章节号
+        max_chapter_num = self._extract_max_chapter_number_from_outline()
+        if max_chapter_num and next_chapter_num > max_chapter_num:
+            return None
+        
         # 在大纲中查找对应章节
         # 匹配格式：第X章：标题 - 描述
-        pattern = rf'第{next_chapter_num}章[：:]\s*([^-\n]+)'
-        match = re.search(pattern, self.novel_outline)
-        if match:
-            title = match.group(1).strip()
-            # 清理标题，去除可能的描述部分
-            if ' - ' in title or ' -' in title:
-                title = title.split(' -')[0].strip()
-            return title
-        
-        # 如果没找到，尝试查找"第X章"后面紧跟的标题（更宽松的匹配）
         pattern = rf'第{next_chapter_num}章[：:]\s*([^\n]+)'
         match = re.search(pattern, self.novel_outline)
         if match:
             title_with_desc = match.group(1).strip()
-            # 如果有"-"，取"-"前面的部分
-            if ' - ' in title_with_desc or ' -' in title_with_desc:
-                return title_with_desc.split(' -')[0].strip()
-            return title_with_desc
+            # 清理标题，去除描述部分
+            title = self._clean_chapter_title(title_with_desc)
+            return title
         
         return None
 
@@ -524,6 +681,16 @@ class AIGN:
             self.pending_memory_text = ""
 
     def generate_next_paragraph(self, user_requirements=None, embellishment_idea=None):
+        # 检查是否已经到达最后一章（检查当前章节）
+        if self._is_last_chapter():
+            self._story_completed = True
+            raise StoryEnded("故事已经完成，所有章节都已写完。")
+        
+        # 检查下一章是否会超过最大章节号（更严格的检查）
+        if self._will_exceed_max_chapter():
+            self._story_completed = True
+            raise StoryEnded("故事已经完成，所有章节都已写完。")
+        
         if user_requirements:
             self.user_requirements = user_requirements
         if embellishment_idea:
@@ -533,6 +700,12 @@ class AIGN:
         
         # 从大纲中提取下一章的标题
         expected_chapter_title = self._extract_next_chapter_title_from_outline()
+        
+        # 如果无法提取下一章标题（可能已经完成），再次检查
+        if expected_chapter_title is None:
+            if self._will_exceed_max_chapter():
+                self._story_completed = True
+                raise StoryEnded("故事已经完成，所有章节都已写完。")
         chapter_count, last_chapter_num = self._get_current_chapter_info()
         next_chapter_num = last_chapter_num + 1 if last_chapter_num > 0 else chapter_count + 1
         
@@ -565,6 +738,10 @@ class AIGN:
         next_paragraph = resp[self.keys["paragraph"]]
         next_writing_plan = resp[self.keys["plan"]]
         next_temp_setting = resp[self.keys["temporary"]]
+
+        # 清理LLM返回的标题，去除可能的描述性文字
+        if paragraph_title:
+            paragraph_title = self._clean_chapter_title(paragraph_title)
 
         # 验证标题不为空
         if not paragraph_title or not paragraph_title.strip():
@@ -623,6 +800,11 @@ class AIGN:
         self.update_memory()
         self.update_novel_content()
         self.record_novel()
+
+        # 检查生成完这一章后是否到达最后一章
+        if self._is_last_chapter() or self._will_exceed_max_chapter():
+            self._story_completed = True
+            print(f"故事已完成，已标记为完成状态")
 
         return paragraph_with_title
 

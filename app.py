@@ -4,7 +4,7 @@ import time
 
 import gradio as gr
 
-from AIGN import AIGN
+from AIGN import AIGN, StoryEnded
 from LLM import chatLLM
 
 STREAM_INTERVAL = 0.
@@ -32,6 +32,7 @@ UI_STRINGS = {
         "temp_label": "即时设定",
         "chat_label": "创作对话",
         "novel_label": "当前正文",
+        "story_ended_message": "🎉 恭喜！故事已经完成，所有章节都已写完。",
     },
     "en": {
         "title": "## Novel Writing Studio",
@@ -55,6 +56,7 @@ UI_STRINGS = {
         "temp_label": "Temporary Setting",
         "chat_label": "Creative Dialogue",
         "novel_label": "Current Manuscript",
+        "story_ended_message": "🎉 Congratulations! The story is complete. All chapters have been written.",
     },
 }
 
@@ -179,14 +181,29 @@ def on_generate_next_paragraph_clicked(
     aign.user_requirements = user_requirements
     aign.embellishment_idea = embellishment_idea
 
+    # 获取当前语言设置
+    current_language = getattr(aign, "language", "zh")
+    ui = UI_STRINGS[current_language]
+
     carrier, middle_chat = make_middle_chat()
     carrier.history = history
     aign.novel_writer.chat_llm = middle_chat
     aign.novel_embellisher.chat_llm = middle_chat
     aign.memory_maker.chat_llm = middle_chat
 
+    # 用于存储异常信息
+    exception_occurred = [None]
+
+    def generate_with_exception_handling():
+        try:
+            aign.generate_next_paragraph()
+        except StoryEnded as e:
+            exception_occurred[0] = e
+        except Exception as e:
+            exception_occurred[0] = e
+
     gen_next_paragraph_thread = threading.Thread(
-        target=aign.generate_next_paragraph
+        target=generate_with_exception_handling
     )
     gen_next_paragraph_thread.start()
 
@@ -201,6 +218,35 @@ def on_generate_next_paragraph_clicked(
             # 移除 gr.Button(visible=False) - 这是第7个值，造成不匹配
         ]
         time.sleep(STREAM_INTERVAL)
+    
+    # 检查是否有异常发生
+    if exception_occurred[0] is not None:
+        if isinstance(exception_occurred[0], StoryEnded):
+            # 故事已结束，在聊天框中显示提示信息
+            updated_history = list(carrier.history)
+            updated_history.append([None, ui["story_ended_message"]])
+            yield [
+                aign,
+                updated_history,
+                aign.writing_plan,
+                aign.temporary_setting,
+                aign.writing_memory,
+                aign.novel_content,
+            ]
+            return
+        else:
+            # 其他异常，显示错误信息
+            updated_history = list(carrier.history)
+            updated_history.append([None, f"错误: {str(exception_occurred[0])}"])
+            yield [
+                aign,
+                updated_history,
+                aign.writing_plan,
+                aign.temporary_setting,
+                aign.writing_memory,
+                aign.novel_content,
+            ]
+            return
     
     # 最终返回也要匹配
     yield [
